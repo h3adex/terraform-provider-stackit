@@ -3,10 +3,7 @@ package volume
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"regexp"
-	"strings"
-
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -30,6 +27,9 @@ import (
 	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/features"
 	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/utils"
 	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/validate"
+	"net/http"
+	"regexp"
+	"strings"
 )
 
 // resourceBetaCheckDone is used to prevent multiple checks for beta resources.
@@ -47,17 +47,18 @@ var (
 )
 
 type Model struct {
-	Id               types.String `tfsdk:"id"` // needed by TF
-	ProjectId        types.String `tfsdk:"project_id"`
-	VolumeId         types.String `tfsdk:"volume_id"`
-	Name             types.String `tfsdk:"name"`
-	AvailabilityZone types.String `tfsdk:"availability_zone"`
-	Labels           types.Map    `tfsdk:"labels"`
-	Description      types.String `tfsdk:"description"`
-	PerformanceClass types.String `tfsdk:"performance_class"`
-	Size             types.Int64  `tfsdk:"size"`
-	ServerId         types.String `tfsdk:"server_id"`
-	Source           types.Object `tfsdk:"source"`
+	Id               types.String   `tfsdk:"id"` // needed by TF
+	ProjectId        types.String   `tfsdk:"project_id"`
+	VolumeId         types.String   `tfsdk:"volume_id"`
+	Name             types.String   `tfsdk:"name"`
+	AvailabilityZone types.String   `tfsdk:"availability_zone"`
+	Labels           types.Map      `tfsdk:"labels"`
+	Description      types.String   `tfsdk:"description"`
+	PerformanceClass types.String   `tfsdk:"performance_class"`
+	Size             types.Int64    `tfsdk:"size"`
+	ServerId         types.String   `tfsdk:"server_id"`
+	Source           types.Object   `tfsdk:"source"`
+	Timeouts         timeouts.Value `tfsdk:"timeouts"`
 }
 
 // Struct corresponding to Model.Source
@@ -143,7 +144,7 @@ func (r *volumeResource) Configure(ctx context.Context, req resource.ConfigureRe
 }
 
 // Schema defines the schema for the resource.
-func (r *volumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *volumeResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: features.AddBetaDescription("Volume resource schema. Must have a `region` specified in the provider configuration."),
 		Description:         "Volume resource schema. Must have a `region` specified in the provider configuration.",
@@ -274,6 +275,11 @@ func (r *volumeResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Create: true,
+				Delete: true,
+				Update: true,
+			}),
 		},
 	}
 }
@@ -321,6 +327,11 @@ func (r *volumeResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	createTimeout, diags := model.Timeouts.Create(ctx, utils.DefaultTimeout)
+	resp.Diagnostics.Append(diags...)
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+
 	projectId := model.ProjectId.ValueString()
 	ctx = tflog.SetField(ctx, "project_id", projectId)
 
@@ -341,7 +352,6 @@ func (r *volumeResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	// Create new volume
-
 	volume, err := r.client.CreateVolume(ctx, projectId).CreateVolumePayload(*payload).Execute()
 	if err != nil {
 		core.LogAndAddError(ctx, &resp.Diagnostics, "Error creating volume", fmt.Sprintf("Calling API: %v", err))
@@ -420,6 +430,12 @@ func (r *volumeResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	updateTimeout, diags := model.Timeouts.Update(ctx, utils.DefaultTimeout)
+	resp.Diagnostics.Append(diags...)
+	ctx, cancel := context.WithTimeout(ctx, updateTimeout)
+	defer cancel()
+
 	projectId := model.ProjectId.ValueString()
 	volumeId := model.VolumeId.ValueString()
 	ctx = tflog.SetField(ctx, "project_id", projectId)
@@ -486,6 +502,11 @@ func (r *volumeResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	deleteTimeout, diags := model.Timeouts.Delete(ctx, utils.DefaultTimeout)
+	resp.Diagnostics.Append(diags...)
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
 
 	projectId := model.ProjectId.ValueString()
 	volumeId := model.VolumeId.ValueString()

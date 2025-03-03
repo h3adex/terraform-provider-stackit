@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/stackitcloud/stackit-sdk-go/core/utils"
@@ -18,6 +19,8 @@ const (
 var (
 	LegacyProjectRoles = []string{"project.admin", "project.auditor", "project.member", "project.owner"}
 )
+
+const DefaultTimeout = 60 * time.Minute
 
 // ReconcileStringSlices reconciles two string lists by removing elements from the
 // first list that are not in the second list and appending elements from the

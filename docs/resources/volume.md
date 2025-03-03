@@ -44,6 +44,7 @@ resource "stackit_volume" "example" {
 - `server_id` (String) The server ID of the server to which the volume is attached to.
 - `size` (Number) The size of the volume in GB. It can only be updated to a larger value than the current size. Either `size` or `source` must be provided
 - `source` (Attributes) The source of the volume. It can be either a volume, an image, a snapshot or a backup. Either `size` or `source` must be provided (see [below for nested schema](#nestedatt--source))
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
 
@@ -57,3 +58,13 @@ Required:
 
 - `id` (String) The ID of the source, e.g. image ID
 - `type` (String) The type of the source. Supported values are: `volume`, `image`, `snapshot`, `backup`.
+
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+- `delete` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours). Setting a timeout for a Delete operation is only applicable if changes are saved into state before the destroy operation occurs.
+- `update` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
