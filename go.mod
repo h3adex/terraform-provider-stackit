@@ -37,7 +37,12 @@ require (
 	golang.org/x/mod v0.23.0
 )
 
-require github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/ProtonMail/go-crypto v1.1.0-alpha.2 // indirect
@@ -76,7 +81,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/stackitcloud/stackit-sdk-go/services/authorization v0.6.0
-	github.com/stretchr/testify v1.8.4 // indirect
+	github.com/stretchr/testify v1.8.4
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
