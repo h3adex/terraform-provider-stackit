@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -264,6 +265,125 @@ func TestIsLegacyProjectRole(t *testing.T) {
 			output := IsLegacyProjectRole(tt.role)
 			if output != tt.expected {
 				t.Fatalf("Data does not match: %v", output)
+			}
+		})
+	}
+}
+
+func TestIsWindowsCloudInit(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name: "Valid cloud-config header",
+			input: `#cloud-config
+users:
+  - name: admin123
+    passwd: gOh8ahdai4Ohcie!
+`,
+			expected: false,
+		},
+		{
+			name:     "Missing cloud-config header",
+			input:    "users:\n  - name: admin123\n    passwd: gOh8ahdai4Ohcie!",
+			expected: true,
+		},
+		{
+			name:     "Empty input",
+			input:    ``,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsWindowsCloudInit(tt.input)
+			if result != tt.expected {
+				t.Errorf("expected: %v, got: %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestValidateWindowsCloudInit(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "Valid single user config",
+			input: `#cloud-config
+users:
+  - name: admin123
+    passwd: gOh8ahdai4Ohcie!
+`,
+			wantErr: false,
+		},
+		{
+			name: "Valid multiple users config",
+			input: `#cloud-config
+users:
+  - name: admin123
+    passwd: gOh8ahdai4Ohcie!
+  - name: user456
+    passwd: dAh9eefai7ohPhe!
+`,
+			wantErr: false,
+		},
+		{
+			name: "Password in double quotes",
+			input: `#cloud-config
+users:
+  - name: admin123
+    passwd: "gOh8ahdai4Ohcie!"
+`,
+			wantErr: true,
+			errMsg:  "password should not be enclosed in double quotes",
+		},
+		{
+			name: "User missing password",
+			input: `#cloud-config
+users:
+  - name: admin123
+`,
+			wantErr: true,
+			errMsg:  "user 'admin123' missing 'passwd' field",
+		},
+		{
+			name: "User missing name",
+			input: `#cloud-config
+users:
+  - passwd: gOh8ahdai4Ohcie!
+`,
+			wantErr: true,
+			errMsg:  "user entry missing 'name' field",
+		},
+		{
+			name: "Invalid YAML format",
+			input: `#cloud-config
+users:
+  - name: admin123
+    passwd: gOh8ahdai4Ohcie!
+  - name user456
+    passwd: dAh9eefai7ohPhe!
+`,
+			wantErr: true,
+			errMsg:  "invalid YAML structure",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateWindowsCloudInit(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("expected error: %v, got: %v", tt.wantErr, err)
+			}
+			if err != nil && tt.wantErr && !strings.Contains(err.Error(), tt.errMsg) {
+				t.Errorf("expected error message to contain: %s, got: %s", tt.errMsg, err.Error())
 			}
 		})
 	}
