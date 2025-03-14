@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"regexp"
 	"strings"
 
@@ -113,4 +114,70 @@ type value interface {
 // IsUndefined checks if a passed value is unknown or null
 func IsUndefined(val value) bool {
 	return val.IsUnknown() || val.IsNull()
+}
+
+// WindowsUserCloudInit represents the expected structure of cloud-init config
+type WindowsUserCloudInit struct {
+	Users []struct {
+		Name   string `yaml:"name"`
+		Groups string `yaml:"groups,omitempty"` // Optional field
+		Passwd any    `yaml:"passwd"`
+	} `yaml:"users"`
+}
+
+// IsWindowsCloudInit checks if cloud-init starts with #cloud-config
+func IsWindowsCloudInit(yamlData string) bool {
+	if !strings.HasPrefix(strings.TrimSpace(yamlData), "#cloud-config") {
+		return false
+	}
+
+	return true
+}
+
+// ValidateWindowsCloudInit checks for common issues in cloud-init YAML
+func ValidateWindowsCloudInit(yamlData string) error {
+	lines := strings.Split(yamlData, "\n")
+
+	// Check for double-quoted usernames and passwords before unmarshaling
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		if strings.Contains(line, "passwd:") {
+			passwdValue := strings.TrimSpace(strings.TrimPrefix(line, "passwd:"))
+			if strings.HasPrefix(passwdValue, `"`) && strings.HasSuffix(passwdValue, `"`) {
+				return fmt.Errorf("password should not be enclosed in double quotes")
+			}
+		}
+	}
+
+	// Remove header before parsing
+	yamlBody := strings.TrimPrefix(yamlData, "#cloud-config")
+
+	var config WindowsUserCloudInit
+	err := yaml.Unmarshal([]byte(yamlBody), &config)
+	if err != nil {
+		return fmt.Errorf("invalid YAML structure: %v", err)
+	}
+
+	// Validate parsed users
+	if len(config.Users) == 0 {
+		return fmt.Errorf("no users defined in cloud-init")
+	}
+
+	for _, user := range config.Users {
+		if user.Name == "" {
+			return fmt.Errorf("user entry missing 'name' field")
+		}
+		if user.Passwd == nil {
+			return fmt.Errorf("user '%s' missing 'passwd' field", user.Name)
+		}
+
+		// Ensure password is a string
+		_, ok := user.Passwd.(string)
+		if !ok {
+			return fmt.Errorf("user '%s' has an invalid password format", user.Name)
+		}
+	}
+
+	return nil
 }

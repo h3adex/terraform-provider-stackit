@@ -427,6 +427,8 @@ func (d desiredStateModifier) PlanModifyString(ctx context.Context, req planmodi
 	var (
 		planState    types.String
 		currentState types.String
+		userData     types.String
+		exists       types.String
 	)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("desired_status"), &planState)...)
 	if resp.Diagnostics.HasError() {
@@ -440,6 +442,34 @@ func (d desiredStateModifier) PlanModifyString(ctx context.Context, req planmodi
 
 	if currentState.ValueString() == modelStateDeallocated && planState.ValueString() == modelStateInactive {
 		core.LogAndAddError(ctx, &resp.Diagnostics, "Error changing server state", "Server state change from deallocated to inactive is not possible")
+	}
+
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("user_data"), &userData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if the resource exists in the current state by attempting to get its "id" or a similar attribute.
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &exists)...)
+
+	if exists.String() != "" && !userData.IsNull() && !userData.IsUnknown() && userData.ValueString() != "" {
+		if utils.IsWindowsCloudInit(userData.ValueString()) {
+			core.LogAndAddWarning(
+				ctx,
+				&resp.Diagnostics,
+				"Cloud-Init Configuration: Windows DNS Requirement",
+				"When building a VM with Windows, ensure that the network attached to the VM has public DNS servers configured.",
+			)
+			err := utils.ValidateWindowsCloudInit(userData.ValueString())
+			if err != nil {
+				core.LogAndAddWarning(
+					ctx,
+					&resp.Diagnostics,
+					"Possible User-Data Syntax Error for Windows",
+					fmt.Sprintf("A possible syntax error has been detected in the cloud-init configuration for Windows: %s. See https://docs.stackit.cloud/stackit/en/create-a-windows-server-via-stackit-iaas-api-cli-98304598.html for more details.", err.Error()),
+				)
+			}
+		}
 	}
 }
 
@@ -541,7 +571,7 @@ func stopServer(ctx context.Context, client serverControlClient, projectId, serv
 	return nil
 }
 
-func deallocatServer(ctx context.Context, client serverControlClient, projectId, serverId string) error {
+func deallocateServer(ctx context.Context, client serverControlClient, projectId, serverId string) error {
 	tflog.Debug(ctx, "deallocating server to enter shelved state")
 	if err := client.DeallocateServerExecute(ctx, projectId, serverId); err != nil {
 		return fmt.Errorf("cannot deallocate server: %w", err)
@@ -569,7 +599,7 @@ func updateServerStatus(ctx context.Context, client serverControlClient, current
 
 		case wait.ServerDeallocatedStatus:
 
-			if err := deallocatServer(ctx, client, model.ProjectId.ValueString(), model.ServerId.ValueString()); err != nil {
+			if err := deallocateServer(ctx, client, model.ProjectId.ValueString(), model.ServerId.ValueString()); err != nil {
 				return err
 			}
 		default:
@@ -585,7 +615,7 @@ func updateServerStatus(ctx context.Context, client serverControlClient, current
 				return err
 			}
 		case wait.ServerDeallocatedStatus:
-			if err := deallocatServer(ctx, client, model.ProjectId.ValueString(), model.ServerId.ValueString()); err != nil {
+			if err := deallocateServer(ctx, client, model.ProjectId.ValueString(), model.ServerId.ValueString()); err != nil {
 				return err
 			}
 
