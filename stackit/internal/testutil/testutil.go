@@ -370,23 +370,6 @@ func SKEProviderConfig() string {
 	)
 }
 
-func AuthorizationProviderConfig() string {
-	if AuthorizationCustomEndpoint == "" {
-		return `
-		provider "stackit" {
-			region = "eu01"
-			experiments = ["iam"]
-		}`
-	}
-	return fmt.Sprintf(`
-		provider "stackit" {
-			authorization_custom_endpoint = "%s"
-			experiments = ["iam"]
-		}`,
-		AuthorizationCustomEndpoint,
-	)
-}
-
 func ServiceAccountProviderConfig() string {
 	if ServiceAccountCustomEndpoint == "" {
 		return `
@@ -401,6 +384,23 @@ func ServiceAccountProviderConfig() string {
 			enable_beta_resources = true
 		}`,
 		ServiceAccountCustomEndpoint,
+	)
+}
+
+func AuthorizationProviderConfig() string {
+	if AuthorizationCustomEndpoint == "" {
+		return `
+		provider "stackit" {
+			region = "eu01"
+			experiments = ["iam"]
+		}`
+	}
+	return fmt.Sprintf(`
+		provider "stackit" {
+			authorization_custom_endpoint = "%s"
+			experiments = ["iam"]
+		}`,
+		AuthorizationCustomEndpoint,
 	)
 }
 
