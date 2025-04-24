@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -52,6 +53,7 @@ var (
 
 	ArgusCustomEndpoint           = os.Getenv("TF_ACC_ARGUS_CUSTOM_ENDPOINT")
 	DnsCustomEndpoint             = os.Getenv("TF_ACC_DNS_CUSTOM_ENDPOINT")
+	GitCustomEndpoint             = os.Getenv("TF_ACC_GIT_CUSTOM_ENDPOINT")
 	IaaSCustomEndpoint            = os.Getenv("TF_ACC_IAAS_CUSTOM_ENDPOINT")
 	LoadBalancerCustomEndpoint    = os.Getenv("TF_ACC_LOADBALANCER_CUSTOM_ENDPOINT")
 	LogMeCustomEndpoint           = os.Getenv("TF_ACC_LOGME_CUSTOM_ENDPOINT")
@@ -79,7 +81,7 @@ var (
 func ArgusProviderConfig() string {
 	if ArgusCustomEndpoint == "" {
 		return `provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -95,7 +97,7 @@ func ArgusProviderConfig() string {
 func ObservabilityProviderConfig() string {
 	if ObservabilityCustomEndpoint == "" {
 		return `provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -122,7 +124,7 @@ func IaaSProviderConfig() string {
 	if IaaSCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -137,7 +139,7 @@ func LoadBalancerProviderConfig() string {
 	if LoadBalancerCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 			enable_beta_resources = true
 		}`
 	}
@@ -153,7 +155,7 @@ func LogMeProviderConfig() string {
 	if LogMeCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -168,7 +170,7 @@ func MariaDBProviderConfig() string {
 	if MariaDBCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -183,7 +185,7 @@ func ModelServingProviderConfig() string {
 	if ModelServingCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}
 		`
 	}
@@ -199,7 +201,7 @@ func MongoDBFlexProviderConfig() string {
 	if MongoDBFlexCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -214,7 +216,7 @@ func ObjectStorageProviderConfig() string {
 	if ObjectStorageCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -229,7 +231,7 @@ func OpenSearchProviderConfig() string {
 	if OpenSearchCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -244,7 +246,7 @@ func PostgresFlexProviderConfig() string {
 	if PostgresFlexCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -259,7 +261,7 @@ func RabbitMQProviderConfig() string {
 	if RabbitMQCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -274,7 +276,7 @@ func RedisProviderConfig() string {
 	if RedisCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -315,7 +317,7 @@ func SecretsManagerProviderConfig() string {
 	if SecretsManagerCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -330,7 +332,7 @@ func SQLServerFlexProviderConfig() string {
 	if SQLServerFlexCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -345,7 +347,7 @@ func ServerBackupProviderConfig() string {
 	if ServerBackupCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -376,7 +378,7 @@ func SKEProviderConfig() string {
 	if SKECustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 		}`
 	}
 	return fmt.Sprintf(`
@@ -391,7 +393,7 @@ func AuthorizationProviderConfig() string {
 	if AuthorizationCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 			experiments = ["iam"]
 		}`
 	}
@@ -408,7 +410,7 @@ func ServiceAccountProviderConfig() string {
 	if ServiceAccountCustomEndpoint == "" {
 		return `
 		provider "stackit" {
-			region = "eu01"
+			default_region = "eu01"
 			enable_beta_resources = true
 		}`
 	}
@@ -421,11 +423,45 @@ func ServiceAccountProviderConfig() string {
 	)
 }
 
+func GitProviderConfig() string {
+	if ServiceAccountCustomEndpoint == "" {
+		return `
+		provider "stackit" {
+			default_region = "eu01"
+			enable_beta_resources = true
+		}`
+	}
+	return fmt.Sprintf(`
+		provider "stackit" {
+			git_custom_endpoint = "%s"
+			enable_beta_resources = true
+		}`,
+		ServiceAccountCustomEndpoint,
+	)
+}
+
 func ResourceNameWithDateTime(name string) string {
 	dateTime := time.Now().Format(time.RFC3339)
 	// Remove timezone to have a smaller datetime
 	dateTimeTrimmed, _, _ := strings.Cut(dateTime, "+")
 	return fmt.Sprintf("tf-acc-%s-%s", name, dateTimeTrimmed)
+}
+
+// GenerateRandomString creates a random string of the specified length
+func GenerateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	randomBytes := make([]byte, length)
+
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return ""
+	}
+
+	for i, b := range randomBytes {
+		randomBytes[i] = charset[b%byte(len(charset))]
+	}
+
+	return string(randomBytes)
 }
 
 func getTestProjectServiceAccountToken(path string) string {
