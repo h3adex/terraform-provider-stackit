@@ -266,19 +266,19 @@ func (l *logAlertGroupResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	createAlertGroupResp, err := l.client.CreateLogsAlertgroups(ctx, instanceId, projectId).CreateLogsAlertgroupsPayload(*payload).Execute()
+	createLogAlertGroupResp, err := l.client.CreateLogsAlertgroups(ctx, instanceId, projectId).CreateLogsAlertgroupsPayload(*payload).Execute()
 	if err != nil {
 		core.LogAndAddError(ctx, &resp.Diagnostics, "Error creating alertgroup", fmt.Sprintf("Creating API payload: %v", err))
 		return
 	}
 
 	// all log alert groups are returned. We have to search the map for the one corresponding to our name
-	for _, alertGroup := range *createAlertGroupResp.Data {
-		if model.Name.ValueString() != *alertGroup.Name {
+	for _, logAlertGroup := range *createLogAlertGroupResp.Data {
+		if model.Name.ValueString() != *logAlertGroup.Name {
 			continue
 		}
 
-		err = mapFields(ctx, &alertGroup, &model)
+		err = mapFields(ctx, &logAlertGroup, &model)
 		if err != nil {
 			core.LogAndAddError(ctx, &resp.Diagnostics, "Error creating log alert group", fmt.Sprintf("Processing API payload: %v", err))
 			return
@@ -310,7 +310,7 @@ func (l *logAlertGroupResource) Read(ctx context.Context, req resource.ReadReque
 	ctx = tflog.SetField(ctx, "log_alert_group_name", alertGroupName)
 	ctx = tflog.SetField(ctx, "instance_id", instanceId)
 
-	readAlertGroupResp, err := l.client.GetLogsAlertgroup(ctx, alertGroupName, instanceId, projectId).Execute()
+	readLogAlertGroupResp, err := l.client.GetLogsAlertgroup(ctx, alertGroupName, instanceId, projectId).Execute()
 	if err != nil {
 		var oapiErr *oapierror.GenericOpenAPIError
 		ok := errors.As(err, &oapiErr)
@@ -322,7 +322,7 @@ func (l *logAlertGroupResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	err = mapFields(ctx, readAlertGroupResp.Data, &model)
+	err = mapFields(ctx, readLogAlertGroupResp.Data, &model)
 	if err != nil {
 		core.LogAndAddError(ctx, &resp.Diagnostics, "Error reading log alert group", fmt.Sprintf("Error processing API response: %v", err))
 		return
@@ -476,7 +476,7 @@ func toRulesPayload(ctx context.Context, model *Model) ([]observability.UpdateAl
 	return oarrs, nil
 }
 
-// mapRules maps alertGroup response to the model.
+// mapFields maps alertGroup response to the model.
 func mapFields(ctx context.Context, alertGroup *observability.AlertGroup, model *Model) error {
 	if alertGroup == nil {
 		return fmt.Errorf("nil alertGroup")
@@ -521,7 +521,7 @@ func mapFields(ctx context.Context, alertGroup *observability.AlertGroup, model 
 	}
 	model.Interval = types.StringValue(interval)
 
-	if alertGroup.Rules != nil {
+	if len(*alertGroup.Rules) > 0 && len(model.Rules.Elements()) > 0 {
 		err := mapRules(ctx, alertGroup, model)
 		if err != nil {
 			return fmt.Errorf("map rules: %w", err)
@@ -531,14 +531,20 @@ func mapFields(ctx context.Context, alertGroup *observability.AlertGroup, model 
 	return nil
 }
 
-// mapRules maps alertGroup response rules to the model rules.
-func mapRules(_ context.Context, alertGroup *observability.AlertGroup, model *Model) error {
+// mapRules maps LogAlertGroup response rules to the model rules.
+func mapRules(ctx context.Context, alertGroup *observability.AlertGroup, model *Model) error {
 	var newRules []attr.Value
+
+	var modelRules []rule
+	diags := model.Rules.ElementsAs(ctx, &modelRules, false)
+	if diags.HasError() {
+		return core.DiagsToError(diags)
+	}
 
 	for i, r := range *alertGroup.Rules {
 		ruleMap := map[string]attr.Value{
 			"alert":       types.StringPointerValue(r.Alert),
-			"expression":  types.StringPointerValue(r.Expr),
+			"expression":  modelRules[i].Expression,
 			"for":         types.StringPointerValue(r.For),
 			"labels":      types.MapNull(types.StringType),
 			"annotations": types.MapNull(types.StringType),

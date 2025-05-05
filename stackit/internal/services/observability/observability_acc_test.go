@@ -48,7 +48,7 @@ var alertGroupResource = map[string]string{
 	"interval_updated":   "1h",
 	"alert":              "alert1",
 	"expression":         `sum(kube_pod_status_phase{phase=\"Running\"}) > 0`,
-	"expression_updated": `sum(kube_pod_status_phase{phase=\"Error\"}) > 0`,
+	"expression_updated": `(\n  kubelet_volume_stats_inodes_free{job=\"kubelet\", namespace=~\".*\", metrics_path=\"/metrics\"}\n    /\n  kubelet_volume_stats_inodes{job=\"kubelet\", namespace=~\".*\", metrics_path=\"/metrics\"}\n) \u003c 0.03\nand\nkubelet_volume_stats_inodes_used{job=\"kubelet\", namespace=~\".*\", metrics_path=\"/metrics\"} \u003e 0\nunless on (cluster, namespace, persistentvolumeclaim)\nkube_persistentvolumeclaim_access_mode{ access_mode=\"ReadOnlyMany\"} == 1\nunless on (cluster, namespace, persistentvolumeclaim)\nkube_persistentvolumeclaim_labels{label_excluded_from_alerts=\"true\"} == 1\n`,
 	"for":                "60s",
 }
 

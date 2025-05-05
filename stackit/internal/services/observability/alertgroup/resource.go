@@ -476,7 +476,7 @@ func toRulesPayload(ctx context.Context, model *Model) ([]observability.UpdateAl
 	return oarrs, nil
 }
 
-// mapRules maps alertGroup response to the model.
+// mapFields maps alertGroup response to the model.
 func mapFields(ctx context.Context, alertGroup *observability.AlertGroup, model *Model) error {
 	if alertGroup == nil {
 		return fmt.Errorf("nil alertGroup")
@@ -521,7 +521,7 @@ func mapFields(ctx context.Context, alertGroup *observability.AlertGroup, model 
 	}
 	model.Interval = types.StringValue(interval)
 
-	if alertGroup.Rules != nil {
+	if len(*alertGroup.Rules) > 0 && len(model.Rules.Elements()) > 0 {
 		err := mapRules(ctx, alertGroup, model)
 		if err != nil {
 			return fmt.Errorf("map rules: %w", err)
@@ -532,13 +532,19 @@ func mapFields(ctx context.Context, alertGroup *observability.AlertGroup, model 
 }
 
 // mapRules maps alertGroup response rules to the model rules.
-func mapRules(_ context.Context, alertGroup *observability.AlertGroup, model *Model) error {
+func mapRules(ctx context.Context, alertGroup *observability.AlertGroup, model *Model) error {
 	var newRules []attr.Value
+
+	var modelRules []rule
+	diags := model.Rules.ElementsAs(ctx, &modelRules, false)
+	if diags.HasError() {
+		return core.DiagsToError(diags)
+	}
 
 	for i, r := range *alertGroup.Rules {
 		ruleMap := map[string]attr.Value{
 			"alert":       types.StringPointerValue(r.Alert),
-			"expression":  types.StringPointerValue(r.Expr),
+			"expression":  modelRules[i].Expression,
 			"for":         types.StringPointerValue(r.For),
 			"labels":      types.MapNull(types.StringType),
 			"annotations": types.MapNull(types.StringType),
