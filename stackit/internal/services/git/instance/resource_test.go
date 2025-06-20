@@ -1,6 +1,8 @@
 package instance
 
 import (
+	"context"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -61,7 +63,7 @@ func TestMapFields(t *testing.T) {
 			state := &Model{
 				ProjectId: tt.expected.ProjectId,
 			}
-			err := mapFields(tt.input, state)
+			err := mapFields(context.Background(), tt.input, state)
 			if !tt.isValid && err == nil {
 				t.Fatalf("Should have failed")
 			}
@@ -73,6 +75,83 @@ func TestMapFields(t *testing.T) {
 				if diff != "" {
 					t.Fatalf("Data does not match: %s", diff)
 				}
+			}
+		})
+	}
+}
+
+func TestCreatePayloadFromModel(t *testing.T) {
+	tests := []struct {
+		description string
+		input       *Model
+		expected    git.CreateInstancePayload
+		expectError bool
+	}{
+		{
+			description: "default values",
+			input: &Model{
+				Name:   types.StringValue("example-instance"),
+				Flavor: types.StringNull(),
+				ACL:    types.ListNull(types.StringType),
+			},
+			expected: git.CreateInstancePayload{
+				Name: utils.Ptr("example-instance"),
+			},
+			expectError: false,
+		},
+		{
+			description: "simple values with ACL and Flavor",
+			input: &Model{
+				Name:   types.StringValue("my-instance"),
+				Flavor: types.StringValue("git-100"),
+				ACL: types.ListValueMust(types.StringType, []attr.Value{
+					types.StringValue("10.0.0.1"),
+					types.StringValue("10.0.0.2"),
+				}),
+			},
+			expected: git.CreateInstancePayload{
+				Name:   utils.Ptr("my-instance"),
+				Flavor: utils.Ptr("git-100"),
+				Acl:    &[]string{"10.0.0.1", "10.0.0.2"},
+			},
+			expectError: false,
+		},
+		{
+			description: "empty ACL still valid",
+			input: &Model{
+				Name:   types.StringValue("my-instance"),
+				Flavor: types.StringValue("git-101"),
+				ACL:    types.ListValueMust(types.StringType, []attr.Value{}),
+			},
+			expected: git.CreateInstancePayload{
+				Name:   utils.Ptr("my-instance"),
+				Flavor: utils.Ptr("git-101"),
+				Acl:    &[]string{},
+			},
+			expectError: false,
+		},
+		{
+			description: "nil input model",
+			input:       nil,
+			expected:    git.CreateInstancePayload{},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.description, func(t *testing.T) {
+			output, diags := createPayloadFromModel(context.Background(), tt.input)
+
+			if tt.expectError && !diags.HasError() {
+				t.Fatalf("expected diagnostics error but got none")
+			}
+
+			if !tt.expectError && diags.HasError() {
+				t.Fatalf("unexpected diagnostics error: %v", diags)
+			}
+
+			if diff := cmp.Diff(tt.expected, output); diff != "" {
+				t.Fatalf("unexpected payload (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"net/http"
 
 	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/conversion"
@@ -86,6 +87,27 @@ func (g *gitDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 					validate.NoSeparator(),
 				},
 			},
+			"acl": schema.ListAttribute{
+				Description: descriptions["acl"],
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+			"consumed_disk": schema.StringAttribute{
+				Description: descriptions["consumed_disk"],
+				Computed:    true,
+			},
+			"consumed_object_storage": schema.StringAttribute{
+				Description: descriptions["consumed_object_storage"],
+				Computed:    true,
+			},
+			"created": schema.StringAttribute{
+				Description: descriptions["created"],
+				Computed:    true,
+			},
+			"flavor": schema.StringAttribute{
+				Description: descriptions["flavor"],
+				Computed:    true,
+			},
 			"name": schema.StringAttribute{
 				Description: descriptions["name"],
 				Computed:    true,
@@ -127,7 +149,7 @@ func (g *gitDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-	err = mapFields(gitInstanceResp, &model)
+	err = mapFields(ctx, gitInstanceResp, &model)
 	if err != nil {
 		core.LogAndAddError(ctx, &resp.Diagnostics, "Error reading git instance", fmt.Sprintf("Processing API response: %v", err))
 		return

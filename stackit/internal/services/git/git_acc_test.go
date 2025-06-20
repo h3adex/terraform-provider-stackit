@@ -19,7 +19,7 @@ import (
 	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/testutil"
 )
 
-//go:embed testdata/resource.tf
+//go:embed testdata/resource-min.tf
 var resourceConfig string
 
 var name = fmt.Sprintf("git-%s-instance", acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
