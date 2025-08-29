@@ -73,6 +73,7 @@ import (
 	rabbitMQInstance "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/rabbitmq/instance"
 	redisCredential "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/redis/credential"
 	redisInstance "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/redis/instance"
+	resourceManagerFolder "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/resourcemanager/folder"
 	resourceManagerProject "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/resourcemanager/project"
 	secretsManagerInstance "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/secretsmanager/instance"
 	secretsManagerUser "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/secretsmanager/user"
@@ -497,6 +498,7 @@ func (p *Provider) DataSources(_ context.Context) []func() datasource.DataSource
 		redisInstance.NewInstanceDataSource,
 		redisCredential.NewCredentialDataSource,
 		resourceManagerProject.NewProjectDataSource,
+		resourceManagerFolder.NewFolderDataSource,
 		secretsManagerInstance.NewInstanceDataSource,
 		secretsManagerUser.NewUserDataSource,
 		sqlServerFlexInstance.NewInstanceDataSource,
@@ -563,6 +565,7 @@ func (p *Provider) Resources(_ context.Context) []func() resource.Resource {
 		redisInstance.NewInstanceResource,
 		redisCredential.NewCredentialResource,
 		resourceManagerProject.NewProjectResource,
+		resourceManagerFolder.NewFolderResource,
 		secretsManagerInstance.NewInstanceResource,
 		secretsManagerUser.NewUserResource,
 		sqlServerFlexInstance.NewInstanceResource,
