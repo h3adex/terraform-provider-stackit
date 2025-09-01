@@ -139,7 +139,7 @@ func TestMapFolderFields(t *testing.T) {
 				ContainerParentId: containerParentId,
 			}
 
-			err := mapFolderFields(context.Background(), tt.respContainerId, tt.respName, tt.labels, tt.parent, model, nil)
+			err := mapFolderFields(context.Background(), tt.respContainerId, tt.respName, *tt.labels, tt.parent, model, nil)
 
 			if !tt.isValid && err == nil {
 				t.Fatalf("Should have failed")

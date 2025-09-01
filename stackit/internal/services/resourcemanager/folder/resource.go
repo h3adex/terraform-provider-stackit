@@ -3,34 +3,33 @@ package folder
 import (
 	"context"
 	"fmt"
-	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/features"
 	"net/http"
 	"regexp"
 	"strings"
-
-	resourcemanagerUtils "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/resourcemanager/utils"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/conversion"
-	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/core"
-	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/validate"
-
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
 	sdkUtils "github.com/stackitcloud/stackit-sdk-go/core/utils"
 	"github.com/stackitcloud/stackit-sdk-go/services/resourcemanager"
+	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/conversion"
+	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/core"
+	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/features"
+	resourcemanagerUtils "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/resourcemanager/utils"
+	"github.com/stackitcloud/terraform-provider-stackit/stackit/internal/validate"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -165,7 +164,8 @@ func (r *folderResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (r *folderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *folderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) { // nolint:gocritic // function signature required by Terraform
+	tflog.Info(ctx, "creating folder")
 	var model ResourceModel
 	diags := req.Plan.Get(ctx, &model)
 	resp.Diagnostics.Append(diags...)
@@ -196,6 +196,10 @@ func (r *folderResource) Create(ctx context.Context, req resource.CreateRequest,
 		core.LogAndAddError(ctx, &resp.Diagnostics, "API response processing error", err.Error())
 		return
 	}
+
+	// This sleep is currently needed due to the IAM Cache.
+	time.Sleep(10 * time.Second)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 	tflog.Info(ctx, "Folder created")
 }
@@ -333,15 +337,15 @@ func (r *folderResource) ImportState(ctx context.Context, req resource.ImportSta
 }
 
 // mapFolderFields maps folder fields from a response into the Terraform model and optionally updates state.
-func mapFolderFields(ctx context.Context, containerId, name *string, labels *map[string]string, containerParent *resourcemanager.Parent, model *Model, state *tfsdk.State) error {
+func mapFolderFields(ctx context.Context, containerId, name *string, labels map[string]string, containerParent *resourcemanager.Parent, model *Model, state *tfsdk.State) error {
 	if containerId == nil || *containerId == "" {
 		return fmt.Errorf("container id is present")
 	}
 
 	var tfLabels basetypes.MapValue
 	var err error
-	if labels != nil && len(*labels) != 0 {
-		tfLabels, err = conversion.ToTerraformStringMap(ctx, *labels)
+	if labels != nil && len(labels) != 0 {
+		tfLabels, err = conversion.ToTerraformStringMap(ctx, labels)
 		if err != nil {
 			return fmt.Errorf("converting to StringValue map: %w", err)
 		}
@@ -385,12 +389,12 @@ func mapFolderFields(ctx context.Context, containerId, name *string, labels *map
 
 // mapFolderCreateFields maps the Create Folder API response to the Terraform model and update the Terraform state
 func mapFolderCreateFields(ctx context.Context, resp *resourcemanager.FolderResponse, model *Model, state *tfsdk.State) error {
-	return mapFolderFields(ctx, resp.ContainerId, resp.Name, resp.Labels, resp.Parent, model, state)
+	return mapFolderFields(ctx, resp.ContainerId, resp.Name, *resp.Labels, resp.Parent, model, state)
 }
 
 // mapFolderDetailsFields maps the GetDetails API response to the Terraform model and update the Terraform state
 func mapFolderDetailsFields(ctx context.Context, resp *resourcemanager.GetFolderDetailsResponse, model *Model, state *tfsdk.State) error {
-	return mapFolderFields(ctx, resp.ContainerId, resp.Name, resp.Labels, resp.Parent, model, state)
+	return mapFolderFields(ctx, resp.ContainerId, resp.Name, *resp.Labels, resp.Parent, model, state)
 }
 
 func toMembersPayload(model *ResourceModel) (*[]resourcemanager.Member, error) {
