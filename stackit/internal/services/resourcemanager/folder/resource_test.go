@@ -2,6 +2,7 @@ package folder
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"reflect"
 	"testing"
 
@@ -125,7 +126,7 @@ func TestMapFolderFields(t *testing.T) {
 			}
 
 			// Simulate ContainerParentId configuration based on UUID detection logic
-			containerParentId := types.StringNull()
+			var containerParentId basetypes.StringValue
 			if tt.uuidContainerParentId {
 				containerParentId = types.StringValue(testUUID)
 			} else if tt.parent != nil && tt.parent.ContainerId != nil {

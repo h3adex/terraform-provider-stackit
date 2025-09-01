@@ -342,9 +342,9 @@ func mapFolderFields(ctx context.Context, containerId, name *string, labels map[
 		return fmt.Errorf("container id is present")
 	}
 
-	var tfLabels basetypes.MapValue
 	var err error
-	if labels != nil && len(labels) != 0 {
+	var tfLabels basetypes.MapValue
+	if len(labels) != 0 {
 		tfLabels, err = conversion.ToTerraformStringMap(ctx, labels)
 		if err != nil {
 			return fmt.Errorf("converting to StringValue map: %w", err)

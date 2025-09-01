@@ -530,7 +530,7 @@ func testAccCheckResourceManagerFoldersDestroy(s *terraform.State) error {
 	return nil
 }
 
-func getImportIdFromID(s *terraform.State, resourceName string, keyName string) (string, error) {
+func getImportIdFromID(s *terraform.State, resourceName, keyName string) (string, error) {
 	r, ok := s.RootModule().Resources[resourceName]
 	if !ok {
 		return "", fmt.Errorf("couldn't find resource %s", resourceName)
