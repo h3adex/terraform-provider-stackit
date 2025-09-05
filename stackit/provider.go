@@ -62,6 +62,7 @@ import (
 	objecStorageCredentialsGroup "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/objectstorage/credentialsgroup"
 	alertGroup "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/observability/alertgroup"
 	observabilityCredential "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/observability/credential"
+	observabilityHttpCheck "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/observability/http-check"
 	observabilityInstance "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/observability/instance"
 	logAlertGroup "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/observability/log-alertgroup"
 	observabilityScrapeConfig "github.com/stackitcloud/terraform-provider-stackit/stackit/internal/services/observability/scrapeconfig"
@@ -555,6 +556,7 @@ func (p *Provider) Resources(_ context.Context) []func() resource.Resource {
 		observabilityCredential.NewCredentialResource,
 		observabilityInstance.NewInstanceResource,
 		observabilityScrapeConfig.NewScrapeConfigResource,
+		observabilityHttpCheck.NewObservabilityHttpCheckResource,
 		openSearchInstance.NewInstanceResource,
 		openSearchCredential.NewCredentialResource,
 		postgresFlexDatabase.NewDatabaseResource,
